@@ -1,0 +1,57 @@
+#!/usr/bin/env bash
+
+# .d88888888888888b. db   db db   db 
+# 88'            `88 88b  88 88  dP' 
+# `G888b. db db   88 88Gb 88 88 d8b. 
+#     `88 88 88   88 88 Gb88 88  `8b 
+#     .88 88 88. .88 88  G88 88   88 
+# d8888P' GP `G888P' GP   G8 GP   GP 
+
+API_TOKEN="********************" # create a free account on https://finnhub.io to get a key
+
+ticker=$([[ -z $1 ]] && echo "DDOG" || echo $(echo -ne $1 | tr a-z A-Z))
+full=$([[ -z $2 ]] && echo 1 || echo "${2}" )
+font=$([[ -z $3 ]] && echo "stonk" || echo "${3}" )
+
+data=$(wget -cq "https://finnhub.io/api/v1/quote?symbol=${ticker}&token=${API_TOKEN}" -O -)
+
+c=$(echo "${data}" | cut -f 2 -d ':' | cut -f 1 -d ',')  # close
+d=$(echo "${data}" | cut -f 3 -d ':' | cut -f 1 -d ',')  # difference
+dp=$(echo "${data}" | cut -f 4 -d ':' | cut -f 1 -d ',')  # previous difference
+h=$(echo "${data}" | cut -f 5 -d ':' | cut -f 1 -d ',')  # lowest
+l=$(echo "${data}" | cut -f 6 -d ':' | cut -f 1 -d ',')  # highest
+o=$(echo "${data}" | cut -f 7 -d ':' | cut -f 1 -d ',')  # open
+pc=$(echo "${data}" | cut -f 8 -d ':' | cut -f 1 -d ',') # previous close
+t=$(echo "${data}" | cut -f 9 -d ':' | cut -f 1 -d '}')  # timestamp
+
+
+c=$(printf "%.2f" "${c}")
+d=$(printf "%.2f" "${d}")
+dp=$(printf "%.2f" "${dp}")
+
+date=$(date -r ${t} "+%Y/%m/%d %H:%M")
+
+red="\033[00;31m"
+green="\033[00;32m"
+gray="\033[01;30m"
+reset="\033[00m"
+
+sign=$([[ "${d:0:1}" == "-" ]] && echo "" || echo "+")
+color=$([[ "${d:0:1}" == "-" ]] && echo "${red}" || echo "${green}")
+arrow=$([[ "${d:0:1}" == "-" ]] && echo "↘︎" || echo "↗︎")
+
+if [ ${full} -eq 1 ]; then
+  # head -n 9 ${0} | tail -n 8 # display STONK logo
+  echo -e "${ticker} STONK ${color}${arrow} ${gray}${date}"
+  echo
+  if hash toilet 2>/dev/null; then
+    echo -e "${c}" | toilet -d "$(dirname ${0})" -f "${font}.flf" -k -F "gay"
+  else
+    echo -e "${c}" | figlet -d "$(dirname ${0})" -f "${font}.flf" -k
+  fi
+  echo
+  echo -e "${sign}${d}${reset} (${color}${sign}${dp}%${reset}) ${green}⬆︎ ${reset}${h} ${red}⬇︎ ${reset}${l}"
+  echo
+else
+  echo -e "${ticker} ${arrow} \$${c} ${sign}${dp}%" #\u2191${h} \u2193${l}"
+fi
